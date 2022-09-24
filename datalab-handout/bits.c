@@ -207,8 +207,9 @@ int negate(int x)
  */
 int isAsciiDigit(int x)
 {
-  int a = !(((x >> 4) & 0x3) ^ 0x3);
-  int b = !(x & 0xA);
+  int a = !((x >> 4) ^ 3); // 判断高 4 位是否为 3
+  int b = !(x & 8) + !((x & 14) ^ 8); // 判断低 4 位是否在 0~9 范围内
+  // int b = !((x & 8) ^ 0) + !((x & 14) ^ 8); // 判断低 4 位是否在 0~9 范围内
   return a & b;
 }
 /*
@@ -233,10 +234,15 @@ int conditional(int x, int y, int z)
  */
 int isLessOrEqual(int x, int y)
 {
-  int flagNotSame = (x ^ y) >> 31;                      //符号位不同
-  int delta = x + (~y + 1);                             //两数之差
-  int lessOrEqual = ((delta >> 31) & 1) | !(delta ^ 0); //差小于或等于0
-  return (flagNotSame & (x >> 31)) | ((~flagNotSame) & lessOrEqual);
+    // 获取符号位
+    int signX = (x >> 31) & 1;//必须再与1,因为负数符号扩展为1
+    int signY = (y >> 31) & 1;
+
+    // 大小比较
+    int z = x + (~y + 1);
+    int isLe = !((z & (1 << 31)) ^ (1 << 31)) | !(z ^ 0);
+
+    return (!(~signX & signY)) & ((signX & ~signY) | isLe);
 }
 // 4
 /*
@@ -249,8 +255,8 @@ int isLessOrEqual(int x, int y)
  */
 int logicalNeg(int x)
 {
-  int a = (~(x ^ (~x + 1))) >> 31; //判断相反数的符号位是否相同
-  return a;
+  // int a = (~(x ^ (~x + 1))) >> 31; //判断相反数的符号位是否相同
+  return ((x | (~x + 1)) >> 31) + 1;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -324,11 +330,12 @@ unsigned floatScale2(unsigned uf)
  *   Max ops: 30
  *   Rating: 4
  */
-int floatFloat2Int(unsigned uf){
+int floatFloat2Int(unsigned uf)
+{
   // 计算阶码
   unsigned exp = (uf & 0x7f800000) >> 23;
   int e = exp - 127;
-  int myfrac;
+  int frac;
 
   // 0或小数直接返回 0
   if (e < 0)
@@ -343,32 +350,32 @@ int floatFloat2Int(unsigned uf){
   }
 
   // 尾数
-  myfrac = (uf & 0x7fffff) | 0x800000;
+  frac = (uf & 0x7fffff) | 0x800000;
 
   // 移动小数点
   if (e > 23)
   {
-    myfrac <<= (e - 23);
+    frac <<= (e - 23);
   }
   else
   {
-    myfrac >>= (23 - e);
+    frac >>= (23 - e);
   }
 
   // 符号位不变
-  if (!((uf >> 31) ^ (myfrac >> 31)))
+  if (!((uf >> 31) ^ (frac >> 31)))
   {
-    return myfrac;
+    return frac;
   }
 
   // 符号位变化，且当前符号为负，说明溢出
-  if (myfrac >> 31)
+  if (frac >> 31)
   {
     return 0x80000000;
   }
 
   // 符号变化，返回补码
-  return ~myfrac + 1;
+  return ~frac + 1;
 }
 
 /*
