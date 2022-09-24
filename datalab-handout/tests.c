@@ -80,7 +80,7 @@ int test_howManyBits(int x) {
     for (cnt=0; a; a>>=1, cnt++)
         ;
 
-    return (int)(cnt + 1);
+    return (int)(cnt + 1); //加1是表示符号位？
 }
 //float
 unsigned test_floatScale2(unsigned uf) {
